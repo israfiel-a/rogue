@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("Example" LANGUAGES C VERSION 0.0.0.11)
+project("Example" LANGUAGES C VERSION 0.0.0.12)
 
-add_executable(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/Example.c")
+add_executable(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/Source/Example.c")
 
 add_dependencies(Example Waterlily)
 target_link_libraries(Example Waterlily)
