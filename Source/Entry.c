@@ -20,8 +20,9 @@ int main(int argc, const char *const *const argv) {
         return -1;
 
     VkDevice logical = nullptr;
-    waterliliy_vulkan_queues_t queues = {0};
-    if (!waterlily_vulkan_getLogicalGPU(physical, &logical, &queues, &indices))
+    waterlily_vulkan_queues_t queues = {0};
+    if (!waterlily_vulkan_createLogicalGPU(physical, &logical, &queues,
+                                           &indices))
         return -1;
 
     while (waterlily_window_process()) {
