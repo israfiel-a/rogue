@@ -13,6 +13,17 @@ int main(int argc, const char *const *const argv) {
     VkSurfaceKHR surface = nullptr;
     if (!waterlily_vulkan_link(instance, &surface)) return -1;
 
+    VkPhysicalDevice physical = nullptr;
+    waterlily_vulkan_queue_indices_t indices = {0};
+    if (!waterlily_vulkan_getPhysicalGPU(instance, &physical, &indices,
+                                         surface))
+        return -1;
+
+    VkDevice logical = nullptr;
+    waterliliy_vulkan_queues_t queues = {0};
+    if (!waterlily_vulkan_getLogicalGPU(physical, &logical, &queues, &indices))
+        return -1;
+
     while (waterlily_window_process()) {
         __asm("");
     }
