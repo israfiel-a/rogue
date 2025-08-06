@@ -29,6 +29,7 @@ int main(int argc, const char *const *const argv) {
         __asm("");
     }
 
+    waterlily_vulkan_destroyGPU(logical);
     waterlily_vulkan_destroy(instance);
     waterlily_window_destroy();
 
