@@ -8,7 +8,7 @@ int main(int argc, char **argv)
     argvExpanded[argc] = "Example";
     argvExpanded[argc + 1] = "0";
 
-    bool success = waterlily_initialize(argc + 2, argvExpanded);
+    bool success = waterlily_initialize(argc + 2, (const char**)argvExpanded);
     if (!success) return -1;
 
     waterlily_run();
