@@ -1,18 +1,9 @@
 #include <Waterlily.h>
 
-int main(int argc, char **argv)
+int main(int argc, const char *const *const argv)
 {
-    char *argvExpanded[argc + 2];
-    for(size_t i = 0; i < (size_t)argc; ++i)
-        argvExpanded[i] = argv[i];
-    argvExpanded[argc] = "Example";
-    argvExpanded[argc + 1] = "0";
+    waterlily_arguments_t arguments = {0};
+    waterlily_engine_digest(argc, argc);
 
-    bool success = waterlily_initialize(argc + 2, (const char**)argvExpanded);
-    if (!success) return -1;
-
-    waterlily_run();
-
-    waterlily_cleanup();
     return 0;
 }
