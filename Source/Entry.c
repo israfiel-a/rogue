@@ -1,5 +1,7 @@
 #include <Waterlily.h>
 
+#define FILENAME "Entry.c"
+
 int main(int argc, const char *const *const argv)
 {
     waterlily_arguments_t arguments = {0};
@@ -57,7 +59,7 @@ int main(int argc, const char *const *const argv)
         return -1;
 
     waterlily_vulkan_pipeline_info_t info = {0};
-    waterlily_vulkan_fillInfoPipeline(&surface, &info);
+    waterlily_vulkan_fillInfoPipeline(&info);
 
     if (!waterlily_vulkan_createLayoutPipeline(logical, &pipeline) ||
         !waterlily_vulkan_createRenderpassPipeline(logical, &pipeline,
@@ -86,6 +88,15 @@ int main(int argc, const char *const *const argv)
     uint32_t currentFrame = 0;
     while (waterlily_window_process())
     {
+        if (waterlily_window_resized(WATERLILY_RESIZE_GET))
+        {
+            if (!waterlily_vulkan_recreateSwapchain(
+                    logical, &surface, &indices, &pipeline, &imageCount,
+                    framebuffers, images, &swapchain))
+                return -1;
+            waterlily_window_resized(WATERLILY_RESIZE_NO);
+        }
+
         if (!waterlily_vulkan_render(
                 logical, &surface, &indices, &queues, &pipeline,
                 buffers[currentFrame], fences[currentFrame],
@@ -93,12 +104,11 @@ int main(int argc, const char *const *const argv)
                 renderFinishedSemaphores[currentFrame], &swapchain, &imageCount,
                 framebuffers, images))
             return -1;
-        if (!waterlily_vulkan_sync(logical))
-            return -1;
 
         currentFrame = (currentFrame + 1) % WATERLILY_CONCURRENT_FRAMES;
     }
 
+    waterlily_vulkan_sync(logical);
     waterlily_vulkan_destroyBuffers(logical, pool);
     waterlily_vulkan_destroySyncs(logical, imageAvailableSemaphores,
                                   renderFinishedSemaphores, fences);
