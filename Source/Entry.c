@@ -5,11 +5,14 @@
 int main(int argc, const char *const *const argv)
 {
     waterlily_arguments_t arguments = {0};
-    waterlily_engine_digest(argc, argv, &arguments);
+    if (!waterlily_engine_digest(argc, argv, &arguments))
+        return -1;
 
-    waterlily_engine_setup(&arguments);
+    if (!waterlily_engine_setup(&arguments))
+        return -1;
 
-    waterlily_window_create("Rogue");
+    if (!waterlily_window_create("Rogue"))
+        return -1;
 
     VkInstance instance = nullptr;
     if (!waterlily_vulkan_create(&instance))
