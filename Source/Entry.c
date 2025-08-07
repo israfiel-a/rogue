@@ -99,7 +99,14 @@ int main(int argc, const char *const *const argv)
         currentFrame = (currentFrame + 1) % WATERLILY_CONCURRENT_FRAMES;
     }
 
+    waterlily_vulkan_destroyBuffers(logical, pool);
+    waterlily_vulkan_destroySyncs(logical, imageAvailableSemaphores,
+                                  renderFinishedSemaphores, fences);
+    waterlily_vulkan_destroySwapchain(logical, imageCount, framebuffers, images,
+                                      swapchain);
+    waterlily_vulkan_destroyPipeline(logical, &pipeline);
     waterlily_vulkan_destroyGPU(logical);
+    waterlily_vulkan_destroySurface(instance, &surface);
     waterlily_vulkan_destroy(instance);
     waterlily_window_destroy();
 
