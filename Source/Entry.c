@@ -71,9 +71,32 @@ int main(int argc, const char *const *const argv)
             framebuffers))
         return -1;
 
+    VkCommandPool pool;
+    VkCommandBuffer buffers[WATERLILY_CONCURRENT_FRAMES];
+    VkFence fences[WATERLILY_CONCURRENT_FRAMES];
+    VkSemaphore imageAvailableSemaphores[WATERLILY_CONCURRENT_FRAMES];
+    VkSemaphore renderFinishedSemaphores[WATERLILY_CONCURRENT_FRAMES];
+    if (!waterlily_vulkan_createBuffersCommand(logical, &indices, &pool,
+                                               buffers) ||
+        !waterlily_vulkan_createSyncsCommand(logical, fences,
+                                             imageAvailableSemaphores,
+                                             renderFinishedSemaphores))
+        return -1;
+
+    uint32_t currentFrame = 0;
     while (waterlily_window_process())
     {
-        __asm("");
+        if (!waterlily_vulkan_render(
+                logical, &surface, &indices, &queues, &pipeline,
+                buffers[currentFrame], fences[currentFrame],
+                imageAvailableSemaphores[currentFrame],
+                renderFinishedSemaphores[currentFrame], &swapchain, &imageCount,
+                framebuffers, images))
+            return -1;
+        if (!waterlily_vulkan_sync(logical))
+            return -1;
+
+        currentFrame = (currentFrame + 1) % WATERLILY_CONCURRENT_FRAMES;
     }
 
     waterlily_vulkan_destroyGPU(logical);
