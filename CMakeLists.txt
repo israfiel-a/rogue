@@ -2,14 +2,18 @@ cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 # We follow a "build" versioning system in which the build number increases with each new release.
 project("Rogue" LANGUAGES C VERSION 1)
 
-
-include(FetchContent)
-FetchContent_Declare(
-    "Waterlily"
-    GIT_REPOSITORY "https://github.com/israfiel-a/waterlily.git"
-    GIT_TAG "origin/main"
-)
-FetchContent_MakeAvailable("Waterlily")
+set(ROGUE_CUSTOM_WATERLILY "repo" CACHE STRING "The path to a custom Waterlily installation.") 
+if(ROGUE_CUSTOM_WATERLILY STREQUAL "repo")
+    include(FetchContent)
+    FetchContent_Declare(
+        "Waterlily"
+        GIT_REPOSITORY "https://github.com/israfiel-a/waterlily.git"
+        GIT_TAG "origin/main"
+    )
+    FetchContent_MakeAvailable("Waterlily")
+else()
+    add_subdirectory(${ROGUE_CUSTOM_WATERLILY} "${CMAKE_CURRENT_BINARY_DIR}/Waterlily")
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 23)
