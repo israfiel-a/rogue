@@ -65,6 +65,12 @@ int main(int argc, const char *const *const argv)
         !waterlily_vulkan_createPipeline(logical, &pipeline, stages, 2, &info))
         return -1;
 
+    VkFramebuffer framebuffers[imageCount];
+    if (!waterlily_vulkan_createFramebuffersSwapchain(
+            logical, &surface, pipeline.renderpass, imageCount, images,
+            framebuffers))
+        return -1;
+
     while (waterlily_window_process())
     {
         __asm("");
