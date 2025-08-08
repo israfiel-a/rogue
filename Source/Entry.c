@@ -2,6 +2,11 @@
 
 #define FILENAME "Entry.c"
 
+void kill(waterlily_key_t *, waterlily_key_t *, waterlily_context_t *context)
+{
+    context->window.close = true;
+}
+
 int main(int argc, const char *const *const argv)
 {
     waterlily_context_t context = {0};
@@ -10,6 +15,9 @@ int main(int argc, const char *const *const argv)
         return -1;
 
     if (!waterlily_engine_setup(&context))
+        return -1;
+
+    if (!waterlily_input_createContext(&context))
         return -1;
 
     if (!waterlily_window_create("Rogue", &context))
@@ -59,11 +67,21 @@ int main(int argc, const char *const *const argv)
         !waterlily_vulkan_createSyncsCommand(&context))
         return -1;
 
+    waterlily_key_combination_t combos[1] = {
+        {
+            {0, XKB_KEY_Escape, 0, WATERLILY_KEY_STATE_DOWN},
+            {0},
+            kill,
+        },
+    };
+
     while (waterlily_window_process(&context))
     {
         if (context.window.resized &&
             !waterlily_vulkan_recreateSwapchain(&context))
             return -1;
+
+        waterlily_input_checkKeys(&context, combos, 1);
 
         if (!waterlily_vulkan_render(&context))
             return -1;
@@ -78,6 +96,7 @@ int main(int argc, const char *const *const argv)
     waterlily_vulkan_destroySurface(&context);
     waterlily_vulkan_destroy(&context);
     waterlily_window_destroy(&context);
+    waterlily_input_destroy(&context);
 
     return 0;
 }
