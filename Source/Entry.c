@@ -4,124 +4,80 @@
 
 int main(int argc, const char *const *const argv)
 {
-    waterlily_arguments_t arguments = {0};
-    if (!waterlily_engine_digest(argc, argv, &arguments))
+    waterlily_context_t context = {0};
+
+    if (!waterlily_engine_digest(argc, argv, &context))
         return -1;
 
-    if (!waterlily_engine_setup(&arguments))
+    if (!waterlily_engine_setup(&context))
         return -1;
 
-    if (!waterlily_window_create("Rogue"))
+    if (!waterlily_window_create("Rogue", &context))
         return -1;
 
-    VkInstance instance = nullptr;
-    if (!waterlily_vulkan_create(&instance))
+    if (!waterlily_vulkan_create(&context))
         return -1;
 
-    waterlily_vulkan_surface_t surface = {0};
-    if (!waterlily_vulkan_createSurface(instance, &surface))
+    if (!waterlily_vulkan_createSurface(&context))
         return -1;
 
-    VkPhysicalDevice physical = nullptr;
-    waterlily_vulkan_queue_indices_t indices = {0};
-    if (!waterlily_vulkan_getPhysicalGPU(instance, &physical, &indices,
-                                         surface.surface))
+    if (!waterlily_vulkan_getPhysicalGPU(&context))
         return -1;
 
-    if (!waterlily_vulkan_getFormatSurface(physical, &surface) ||
-        !waterlily_vulkan_getModeSurface(physical, &surface) ||
-        !waterlily_vulkan_getCapabilitiesSurface(physical, &surface))
+    if (!waterlily_vulkan_getFormatSurface(&context) ||
+        !waterlily_vulkan_getModeSurface(&context) ||
+        !waterlily_vulkan_getCapabilitiesSurface(&context))
+        return -1;
+    waterlily_vulkan_getExtentSurface(&context);
+
+    if (!waterlily_vulkan_createLogicalGPU(&context))
         return -1;
 
-    uint32_t width, height;
-    waterlily_window_measure(&width, &height);
-    waterlily_vulkan_getExtentSurface(width, height, &surface);
-
-    VkDevice logical = nullptr;
-    waterlily_vulkan_queues_t queues = {0};
-    if (!waterlily_vulkan_createLogicalGPU(physical, &logical, &queues,
-                                           &indices))
+    if (!waterlily_vulkan_createSwapchain(&context))
         return -1;
 
-    VkSwapchainKHR swapchain = nullptr;
-    uint32_t imageCount = 0;
-    if (!waterlily_vulkan_createSwapchain(logical, &imageCount, &swapchain,
-                                          &surface, &indices))
+    if (!waterlily_vulkan_partitionSwapchain(&context))
         return -1;
-
-    VkImageView images[imageCount];
-    if (!waterlily_vulkan_partitionSwapchain(logical, &surface, swapchain,
-                                             imageCount, images))
-        return -1;
-
-    waterlily_vulkan_graphics_pipeline_t pipeline = {0};
 
     VkPipelineShaderStageCreateInfo stages[2];
     const char *const stageNames[2] = {"default.vert", "default.frag"};
-    if (!waterlily_vulkan_setupShadersPipeline(logical, stageNames, 2, stages))
+    if (!waterlily_vulkan_setupShadersPipeline(&context, stageNames, 2, stages))
         return -1;
 
     waterlily_vulkan_pipeline_info_t info = {0};
     waterlily_vulkan_fillInfoPipeline(&info);
 
-    if (!waterlily_vulkan_createLayoutPipeline(logical, &pipeline) ||
-        !waterlily_vulkan_createRenderpassPipeline(logical, &pipeline,
-                                                   &surface) ||
-        !waterlily_vulkan_createPipeline(logical, &pipeline, stages, 2, &info))
+    if (!waterlily_vulkan_createLayoutPipeline(&context) ||
+        !waterlily_vulkan_createRenderpassPipeline(&context) ||
+        !waterlily_vulkan_createPipeline(&context, stages, 2, &info))
         return -1;
 
-    VkFramebuffer framebuffers[imageCount];
-    if (!waterlily_vulkan_createFramebuffersSwapchain(
-            logical, &surface, pipeline.renderpass, imageCount, images,
-            framebuffers))
+    if (!waterlily_vulkan_createFramebuffersSwapchain(&context))
         return -1;
 
-    VkCommandPool pool;
-    VkCommandBuffer buffers[WATERLILY_CONCURRENT_FRAMES];
-    VkFence fences[WATERLILY_CONCURRENT_FRAMES];
-    VkSemaphore imageAvailableSemaphores[WATERLILY_CONCURRENT_FRAMES];
-    VkSemaphore renderFinishedSemaphores[WATERLILY_CONCURRENT_FRAMES];
-    if (!waterlily_vulkan_createBuffersCommand(logical, &indices, &pool,
-                                               buffers) ||
-        !waterlily_vulkan_createSyncsCommand(logical, fences,
-                                             imageAvailableSemaphores,
-                                             renderFinishedSemaphores))
+    if (!waterlily_vulkan_createBuffersCommand(&context) ||
+        !waterlily_vulkan_createSyncsCommand(&context))
         return -1;
 
-    uint32_t currentFrame = 0;
-    while (waterlily_window_process())
+    while (waterlily_window_process(&context))
     {
-        if (waterlily_window_resized(WATERLILY_RESIZE_GET))
-        {
-            if (!waterlily_vulkan_recreateSwapchain(
-                    logical, &surface, &indices, &pipeline, &imageCount,
-                    framebuffers, images, &swapchain))
-                return -1;
-            waterlily_window_resized(WATERLILY_RESIZE_NO);
-        }
-
-        if (!waterlily_vulkan_render(
-                logical, &surface, &indices, &queues, &pipeline,
-                buffers[currentFrame], fences[currentFrame],
-                imageAvailableSemaphores[currentFrame],
-                renderFinishedSemaphores[currentFrame], &swapchain, &imageCount,
-                framebuffers, images))
+        if (context.window.resized &&
+            !waterlily_vulkan_recreateSwapchain(&context))
             return -1;
 
-        currentFrame = (currentFrame + 1) % WATERLILY_CONCURRENT_FRAMES;
+        if (!waterlily_vulkan_render(&context))
+            return -1;
     }
 
-    waterlily_vulkan_sync(logical);
-    waterlily_vulkan_destroyBuffers(logical, pool);
-    waterlily_vulkan_destroySyncs(logical, imageAvailableSemaphores,
-                                  renderFinishedSemaphores, fences);
-    waterlily_vulkan_destroySwapchain(logical, imageCount, framebuffers, images,
-                                      swapchain);
-    waterlily_vulkan_destroyPipeline(logical, &pipeline);
-    waterlily_vulkan_destroyGPU(logical);
-    waterlily_vulkan_destroySurface(instance, &surface);
-    waterlily_vulkan_destroy(instance);
-    waterlily_window_destroy();
+    waterlily_vulkan_sync(&context);
+    waterlily_vulkan_destroyBuffers(&context);
+    waterlily_vulkan_destroySyncs(&context);
+    waterlily_vulkan_destroySwapchain(&context);
+    waterlily_vulkan_destroyPipeline(&context);
+    waterlily_vulkan_destroyGPU(&context);
+    waterlily_vulkan_destroySurface(&context);
+    waterlily_vulkan_destroy(&context);
+    waterlily_window_destroy(&context);
 
     return 0;
 }
