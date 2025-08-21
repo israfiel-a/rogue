@@ -7,6 +7,8 @@
 BUILD:=$(abspath build)
 SOURCE:=$(abspath src)
 INCLUDE:=$(abspath include)
+ASSETS_NAME:=rss
+ASSETS:=$(abspath $(ASSETS_NAME)) 
 
 PUBLIC_DIR=$(PREFIX)/include/waterlily
 LIB_DIR=$(PREFIX)/lib
@@ -69,7 +71,7 @@ export_commands: | $(BUILD)
 ## Define the project's build tasks.
 ###############################################################################
 
-$(EXECUTABLE): $(OUTPUTS) 
+$(EXECUTABLE): $(OUTPUTS) | $(BUILD)/$(ASSETS_NAME)
 	$(CC) $(OUTPUTS) -o $(EXECUTABLE) $(CFLAGS) $(LDFLAGS) $(shell pkg-config --libs --cflags waterlily) 
 
 $(BUILD)/%.o: $(SOURCE)/%.c | $(BUILD) 
@@ -77,4 +79,7 @@ $(BUILD)/%.o: $(SOURCE)/%.c | $(BUILD)
 
 $(BUILD):
 	mkdir -p $(BUILD)
+
+$(BUILD)/$(ASSETS_NAME): | $(BUILD)
+	cp -r $(ASSETS) $(BUILD)
 
