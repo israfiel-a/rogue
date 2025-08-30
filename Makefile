@@ -4,7 +4,7 @@
 ## Figure out the directory and dependency structure of the project build.
 ###############################################################################
 
-BUILD:=$(abspath build)
+BUILD_DIRECTORY:=$(abspath build)
 SOURCE:=$(abspath src)
 INCLUDE:=$(abspath include)
 ASSETS_NAME:=rss
@@ -15,34 +15,50 @@ LIB_DIR=$(PREFIX)/lib
 CONFIG_DIR=$(PREFIX)/share/pkgconfig
 DEPENDENCIES=vulkan wayland-client xkbcommon
 
+WATERLILY_DIRECTORY:=$(BUILD_DIRECTORY)/waterlily
+
 ###############################################################################
 ## Define the project's output files.
 ###############################################################################
 
 OBJECTS:=entry.o 
-OUTPUTS:=$(foreach obj, $(OBJECTS), $(addprefix $(BUILD)/, $(obj)))
+OUTPUTS:=$(foreach obj, $(OBJECTS), $(addprefix $(BUILD_DIRECTORY)/, $(obj)))
 
 EXECUTABLE_NAME:=rogue
-EXECUTABLE:=$(BUILD)/$(EXECUTABLE_NAME)
+EXECUTABLE:=$(BUILD_DIRECTORY)/$(EXECUTABLE_NAME)
 
-COMPILEDB:=$(BUILD)/compile_commands.json
+COMPILEDB:=$(BUILD_DIRECTORY)/compile_commands.json
+PKG_CONFIG_PATH:=$(WATERLILY_DIRECTORY)/build
+export PKG_CONFIG_PATH
 
 ###############################################################################
 ## Define the project's setup tasks.
 ###############################################################################
 
-all: waterlily-update $(EXECUTABLE) $(COMPILEDB) 
+define find_mode
+	$(if $(wildcard $(BUILD_DIRECTORY)/$(1).mode),clean,) 
+endef
+ 
+all: waterlily-update $(EXECUTABLE)
 
-$(BUILD)/waterlily:
+$(WATERLILY_DIRECTORY):
 	git clone https://github.com/israfiel-a/waterlily.git $@
 
-waterlily-update: $(BUILD)/waterlily
-	cd $(BUILD)/waterlily && git pull
-	cd $(BUILD)/waterlily && $(MAKE) debug
-	export PKG_CONFIG_PATH=$(BUILD)/waterlily/build
+waterlily-update: $(WATERLILY_DIRECTORY)
+	cd $(WATERLILY_DIRECTORY) && git pull
+	cd $(WATERLILY_DIRECTORY) && $(MAKE) $(MAKECMDGOALS) 
 
 clean:
-	$(RM) -rf $(BUILD)
+	$(RM) -rf $(BUILD_DIRECTORY)
+
+debug: $(call find_mode,release) all $(COMPILEDB) $(BUILD_DIRECTORY)/debug.mode
+release: $(call find_mode,debug) all $(BUILD_DIRECTORY)/release.mode
+
+$(BUILD_DIRECTORY)/debug.mode:
+	touch $(BUILD_DIRECTORY)/debug.mode
+
+$(BUILD_DIRECTORY)/release.mode:
+	touch $(BUILD_DIRECTORY)/release.mode
 
 $(COMPILEDB):
 	$(if $(strip $(GENERATING)),,$\
@@ -55,15 +71,15 @@ $(COMPILEDB):
 ## Define the project's build tasks.
 ###############################################################################
 
-$(EXECUTABLE): $(OUTPUTS) | $(BUILD)/$(ASSETS_NAME)
+$(EXECUTABLE): $(OUTPUTS) | $(BUILD_DIRECTORY)/$(ASSETS_NAME)
 	$(CC) $(OUTPUTS) -o $(EXECUTABLE) $(shell pkg-config --cflags --libs waterlily)
 
-$(BUILD)/%.o: $(SOURCE)/%.c | $(BUILD) 
+$(BUILD_DIRECTORY)/%.o: $(SOURCE)/%.c | $(BUILD_DIRECTORY) 
 	$(CC) -c $< -DFILENAME=\"$(notdir $<)\" -o $@ $(shell pkg-config --cflags waterlily) 
 
-$(BUILD):
-	mkdir -p $(BUILD)
+$(BUILD_DIRECTORY):
+	mkdir -p $(BUILD_DIRECTORY)
 
-$(BUILD)/$(ASSETS_NAME): | $(BUILD)
-	cp -r $(ASSETS) $(BUILD)
+$(BUILD_DIRECTORY)/$(ASSETS_NAME): | $(BUILD_DIRECTORY)
+	cp -r $(ASSETS) $(BUILD_DIRECTORY)
 
